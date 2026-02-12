@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>changeplan</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container">
+      <div class="navbarInner">
+        <a class="brand" href="dashboard.html">
+          <div class="brandMark"></div>
+          <div class="brandText">
+            <strong>VAS Bank</strong>
+            <span>Personal Banking</span>
+          </div>
+        </a>
+
+        <nav class="navLinks">
+          <a href="dashboard.html" data-nav="dashboard">Overview</a>
+          <a href="transfer.html" data-nav="transfer">transfer</a>
+          <a href="paybill.html" data-nav="paybill">paybill</a>
+          <a href="deposit.html" data-nav="deposit">deposit</a>
+        </nav>
+
+        <div class="navActions">
+          <div class="sessionChip">
+            <span class="dot"></span>
+            <span id="sessionBanner">…</span>
+          </div>
+          <a class="btn small" href="login.html">login</a>
+          <button class="btn primary small" id="logoutBtn">logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="hero">
+    <div class="container">
+
+      <div class="pageHeader">
+        <div>
+          <h1>changeplan</h1>
+          <p>Admin-only: pivot account plan between SP and NP.</p>
+        </div>
+        <div class="formRow" style="margin:0;">
+          <a class="btn" href="dashboard.html">Back to dashboard</a>
+        </div>
+      </div>
+
+      <div class="twoCol">
+        <!-- Form card -->
+        <section class="card">
+          <h2 class="formTitle">changeplan</h2>
+          <p class="formSub">
+            Enter the account holder name and account number. The plan will toggle (SP ⇄ NP).
+            You will recieve a message confirming success or rejection.
+          </p>
+
+          <label for="name">Name</label>
+          <input id="name" placeholder="e.g., Alice" autocomplete="off" />
+
+          <label for="number">Account number</label>
+          <input id="number" placeholder="e.g., 11111" inputmode="numeric" autocomplete="off" />
+
+          <div class="formRow">
+            <button class="btn primary" id="submitBtn">changeplan</button>
+            <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+          </div>
+
+          <div class="helper">
+            This command flips the plan type. Run it again to flip back.
+          </div>
+        </section>
+
+        <!-- Helpful info / tips section -->
+        <aside class="infoBox">
+          <h3>Quick tips</h3>
+          <p>
+            • This command is <strong>admin-only</strong>.<br/>
+            • The account must exist before the plan can be changed.<br/>
+            • Name must match the account holder for that account number.<br/>
+            • Plan pivots between <strong>SP</strong> and <strong>NP</strong>.
+          </p>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    wireCommon();
+    if (!requireAdmin()) { /* redirected */ }
+    setSessionBanner();
+
+    document.getElementById("submitBtn").addEventListener("click", () => {
+      cmd_changeplan({
+        name: document.getElementById("name").value,
+        number: document.getElementById("number").value
+      });
+      setSessionBanner();
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      document.getElementById("name").value = "";
+      document.getElementById("number").value = "";
+    });
+  </script>
+</body>
+</html>

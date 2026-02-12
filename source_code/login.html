@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>login</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Navbar (consistent across pages) -->
+  <header class="navbar">
+    <div class="container">
+      <div class="navbarInner">
+        <a class="brand" href="dashboard.html">
+          <div class="brandMark"></div>
+          <div class="brandText">
+            <strong>VAS Bank</strong>
+            <span>Personal Banking</span>
+          </div>
+        </a>
+
+        <nav class="navLinks">
+            <a href="dashboard.html">Overview</a>
+            <a href="transfer.html">transfer</a>
+            <a href="paybill.html">paybill</a>
+            <a href="deposit.html">deposit</a>
+        </nav>
+
+        <div class="navActions">
+          <div class="sessionChip">
+            <span class="dot"></span>
+            <span id="sessionBanner">…</span>
+          </div>
+          <a class="btn primary small" href="login.html">login</a>
+          <button class="btn small" id="logoutBtn" style="display:none;">logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero / Sign in -->
+  <main class="hero">
+    <div class="container">
+      <div class="heroGrid">
+        <section class="heroCard">
+          <h1 class="heroTitle">Welcome back 👋</h1>
+          <p class="heroSub">
+            Sign in to continue. This is a Phase 2 prototype and actions map to the project
+            command words (login, withdrawal, transfer, paybill, deposit, create, delete, disable, changeplan).
+          </p>
+
+          <div class="pills">
+            <div class="pill">Secure sessions</div>
+            <div class="pill">Role-based access</div>
+            <div class="pill">Clear feedback</div>
+            <div class="pill">Daily export on logout</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="formTitle">login</h2>
+          <p class="formSub">Choose a mode. Standard requires an existing account holder name.</p>
+
+          <label for="mode">Mode</label>
+          <select id="mode">
+            <option value="standard">standard</option>
+            <option value="admin">admin</option>
+          </select>
+
+          <div id="nameWrap">
+            <label for="name">Account holder name (standard)</label>
+            <input id="name" placeholder="e.g., Alice" autocomplete="off" />
+          </div>
+
+          <div class="formRow">
+            <button class="btn primary" id="loginBtn">Sign in</button>
+            <a class="btn ghost" href="dashboard.html">Already signed in?</a>
+          </div>
+
+          <div class="helper">
+            Sample users: Alice, Bob, Charlie, DisabledUser.
+          </div>
+        </section>
+      </div>
+
+      <h3 class="sectionTitle">Popular services</h3>
+      <div class="grid3">
+        <div class="card">
+          <h4 class="productTitle">Everyday Banking</h4>
+          <p class="productText">Access balances, move money, and pay bills from one place.</p>
+        </div>
+        <div class="card">
+          <h4 class="productTitle">Secure Sign-In</h4>
+          <p class="productText">Role-based permissions: standard vs admin actions.</p>
+        </div>
+        <div class="card">
+          <h4 class="productTitle">Transaction Export</h4>
+          <p class="productText">Download a daily transaction file when you logout.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    wireCommon();
+    setSessionBanner();
+
+    // Optional nav highlight if you added wireNavActive() to app.js
+    // wireNavActive("dashboard");
+
+    const mode = document.getElementById("mode");
+    const nameWrap = document.getElementById("nameWrap");
+    const nameInput = document.getElementById("name");
+    const loginBtn = document.getElementById("loginBtn");
+
+    function sync(){
+      nameWrap.style.display = (mode.value === "standard") ? "block" : "none";
+    }
+    mode.addEventListener("change", sync);
+    sync();
+
+    loginBtn.addEventListener("click", () => {
+      const ok = cmd_login(mode.value, nameInput.value);
+      setSessionBanner();
+      if (ok) window.location.href = "dashboard.html";
+    });
+  </script>
+</body>
+</html>

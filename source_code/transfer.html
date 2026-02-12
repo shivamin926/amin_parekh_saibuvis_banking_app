@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>transfer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Navbar (consistent across pages) -->
+  <header class="navbar">
+    <div class="container">
+      <div class="navbarInner">
+        <a class="brand" href="dashboard.html">
+          <div class="brandMark"></div>
+          <div class="brandText">
+            <strong>VAS Bank</strong>
+            <span>Personal Banking</span>
+          </div>
+        </a>
+
+        <nav class="navLinks">
+          <a href="dashboard.html" data-nav="dashboard">Overview</a>
+          <a href="transfer.html" data-nav="transfer">transfer</a>
+          <a href="paybill.html" data-nav="paybill">paybill</a>
+          <a href="deposit.html" data-nav="deposit">deposit</a>
+        </nav>
+
+        <div class="navActions">
+          <div class="sessionChip">
+            <span class="dot"></span>
+            <span id="sessionBanner">…</span>
+          </div>
+          <a class="btn small" href="login.html">login</a>
+          <button class="btn primary small" id="logoutBtn">logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="hero">
+    <div class="container">
+
+      <div class="pageHeader">
+        <div>
+          <h1>transfer</h1>
+          <p>Move funds between accounts. Standard session caps apply.</p>
+        </div>
+        <div class="formRow" style="margin:0;">
+          <a class="btn" href="dashboard.html">Back to dashboard</a>
+        </div>
+      </div>
+
+      <div class="twoCol">
+        <!-- Form card -->
+        <section class="card">
+          <h2 class="formTitle">transfer</h2>
+          <p class="formSub">
+            Standard mode uses your logged-in name automatically.
+            Admin mode requires the account holder name for the <strong>from</strong> account.
+          </p>
+
+          <div id="adminNameWrap">
+            <label for="name">Name (admin)</label>
+            <input id="name" placeholder="e.g., Alice" autocomplete="off" />
+          </div>
+
+          <label for="from">From account</label>
+          <input id="from" placeholder="e.g., 11111" inputmode="numeric" autocomplete="off" />
+
+          <label for="to">To account</label>
+          <input id="to" placeholder="e.g., 22222" inputmode="numeric" autocomplete="off" />
+
+          <label for="amount">Amount</label>
+          <input id="amount" placeholder="e.g., 100" inputmode="decimal" autocomplete="off" />
+
+          <div class="formRow">
+            <button class="btn primary" id="submitBtn">transfer</button>
+            <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+          </div>
+
+          <div class="helper">
+            You’ll receive a toast message confirming success or explaining why it was rejected.
+          </div>
+        </section>
+
+        <!-- Helpful info / tips -->
+        <aside class="infoBox">
+          <h3>Quick tips</h3>
+          <p>
+            • Standard transfer cap is <strong>1000</strong> per session.<br/>
+            • Both accounts must be <strong>ENABLED</strong>.<br/>
+            • The <strong>from</strong> account must have sufficient funds.<br/>
+            • Admin must enter the <strong>exact holder name</strong> for the source account.
+          </p>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    wireCommon();
+    if (!requireLoggedIn()) { /* redirected */ }
+    setSessionBanner();
+
+    // If you added wireNavActive() in app.js, uncomment:
+    // wireNavActive("transfer");
+
+    const s = getSession();
+    const adminWrap = document.getElementById("adminNameWrap");
+    adminWrap.style.display = (s.role === "ADMIN") ? "block" : "none";
+
+    document.getElementById("submitBtn").addEventListener("click", () => {
+      cmd_transfer({
+        name: document.getElementById("name").value,
+        from: document.getElementById("from").value,
+        to: document.getElementById("to").value,
+        amount: document.getElementById("amount").value
+      });
+      setSessionBanner();
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      document.getElementById("name").value = "";
+      document.getElementById("from").value = "";
+      document.getElementById("to").value = "";
+      document.getElementById("amount").value = "";
+    });
+  </script>
+</body>
+</html>

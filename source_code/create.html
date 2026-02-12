@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>create</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Navbar (consistent across pages) -->
+  <header class="navbar">
+    <div class="container">
+      <div class="navbarInner">
+        <a class="brand" href="dashboard.html">
+          <div class="brandMark"></div>
+          <div class="brandText">
+            <strong>VAS Bank</strong>
+            <span>Personal Banking</span>
+          </div>
+        </a>
+
+        <nav class="navLinks">
+          <a href="dashboard.html" data-nav="dashboard">Overview</a>
+          <a href="transfer.html" data-nav="transfer">transfer</a>
+          <a href="paybill.html" data-nav="paybill">paybill</a>
+          <a href="deposit.html" data-nav="deposit">deposit</a>
+        </nav>
+
+        <div class="navActions">
+          <div class="sessionChip">
+            <span class="dot"></span>
+            <span id="sessionBanner">…</span>
+          </div>
+          <a class="btn small" href="login.html">login</a>
+          <button class="btn primary small" id="logoutBtn">logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="hero">
+    <div class="container">
+
+      <div class="pageHeader">
+        <div>
+          <h1>create</h1>
+          <p>Admin-only: create a new bank account record.</p>
+        </div>
+        <div class="formRow" style="margin:0;">
+          <a class="btn" href="dashboard.html">Back to dashboard</a>
+        </div>
+      </div>
+
+      <div class="twoCol">
+        <!-- Form card -->
+        <section class="card">
+          <h2 class="formTitle">create</h2>
+          <p class="formSub">
+            Enter the user details below. You’ll see a toast message confirming success or rejection.
+          </p>
+
+          <label for="name">Name</label>
+          <input id="name" placeholder="e.g., New User" autocomplete="off" />
+
+          <label for="number">Account number</label>
+          <input id="number" placeholder="e.g., 55555" inputmode="numeric" autocomplete="off" />
+
+          <label for="balance">Starting balance</label>
+          <input id="balance" placeholder="e.g., 0" inputmode="decimal" autocomplete="off" />
+
+          <label for="plan">Plan</label>
+          <select id="plan">
+            <option value="SP">SP</option>
+            <option value="NP">NP</option>
+          </select>
+
+          <div class="formRow">
+            <button class="btn primary" id="submitBtn">create</button>
+            <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+          </div>
+
+          <div class="helper">
+            Name must be a valid format. Account number must be unique.
+          </div>
+        </section>
+
+        <!-- Helpful info / tips -->
+        <aside class="infoBox">
+          <h3>Quick tips</h3>
+          <p>
+            • This command is <strong>admin-only</strong>.<br/>
+            • Plan must be <strong>SP</strong> or <strong>NP</strong>.<br/>
+            • Starting balance must be a valid non-negative number.<br/>
+            • Account numbers must be unique (no duplicates).
+          </p>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    wireCommon();
+    if (!requireAdmin()) { /* redirected */ }
+    setSessionBanner();
+
+    document.getElementById("submitBtn").addEventListener("click", () => {
+      cmd_create({
+        name: document.getElementById("name").value,
+        number: document.getElementById("number").value,
+        balance: document.getElementById("balance").value,
+        plan: document.getElementById("plan").value
+      });
+      setSessionBanner();
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      document.getElementById("name").value = "";
+      document.getElementById("number").value = "";
+      document.getElementById("balance").value = "";
+      document.getElementById("plan").value = "SP";
+    });
+  </script>
+</body>
+</html>

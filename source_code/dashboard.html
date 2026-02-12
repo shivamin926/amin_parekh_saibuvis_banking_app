@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Navbar (consistent across pages) -->
+  <header class="navbar">
+    <div class="container">
+      <div class="navbarInner">
+        <a class="brand" href="dashboard.html">
+          <div class="brandMark"></div>
+          <div class="brandText">
+            <strong>VAS Bank</strong>
+            <span>Personal Banking</span>
+          </div>
+        </a>
+
+        <nav class="navLinks">
+          <a href="dashboard.html" data-nav="dashboard">Overview</a>
+          <a href="transfer.html" data-nav="transfer">transfer</a>
+          <a href="paybill.html" data-nav="paybill">paybill</a>
+          <a href="deposit.html" data-nav="deposit">deposit</a>
+        </nav>
+
+        <div class="navActions">
+          <div class="sessionChip">
+            <span class="dot"></span>
+            <span id="sessionBanner">…</span>
+          </div>
+          <button class="btn small" id="downloadTxBtn">Download daily file</button>
+          <button class="btn primary small" id="logoutBtn">logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="hero">
+    <div class="container">
+      <section class="heroCard">
+        <h1 class="heroTitle">Dashboard</h1>
+        <p class="heroSub">
+          Choose an action below. Each page maps to the command word used in your test cases.
+          You’ll receive friendly toast messages (e.g., “withdrawal accepted”).
+        </p>
+
+        <div class="pills">
+          <div class="pill">Standard caps enforced</div>
+          <div class="pill">Admin privileges supported</div>
+          <div class="pill">Download on logout</div>
+        </div>
+      </section>
+
+      <h3 class="sectionTitle">Transactions</h3>
+      <div class="grid3">
+        <div class="card">
+          <h4 class="productTitle">withdrawal</h4>
+          <p class="productText">Withdraw funds from an enabled account (standard cap applies).</p>
+          <div class="formRow"><a class="btn primary" href="withdrawal.html">Open</a></div>
+        </div>
+
+        <div class="card">
+          <h4 class="productTitle">transfer</h4>
+          <p class="productText">Move funds between accounts (standard cap applies).</p>
+          <div class="formRow"><a class="btn primary" href="transfer.html">Open</a></div>
+        </div>
+
+        <div class="card">
+          <h4 class="productTitle">paybill</h4>
+          <p class="productText">Pay a bill using a company code and amount.</p>
+          <div class="formRow"><a class="btn primary" href="paybill.html">Open</a></div>
+        </div>
+
+        <div class="card">
+          <h4 class="productTitle">deposit</h4>
+          <p class="productText">Deposit funds (applied after logout).</p>
+          <div class="formRow"><a class="btn primary" href="deposit.html">Open</a></div>
+        </div>
+      </div>
+
+      <h3 class="sectionTitle">Admin-only</h3>
+      <div class="grid3">
+        <div class="card">
+          <h4 class="productTitle">create</h4>
+          <p class="productText">Create a new account (admin only).</p>
+          <div class="formRow"><a class="btn" href="create.html">Open</a></div>
+        </div>
+
+        <div class="card">
+          <h4 class="productTitle">delete</h4>
+          <p class="productText">Delete an account (admin only).</p>
+          <div class="formRow"><a class="btn" href="delete.html">Open</a></div>
+        </div>
+
+        <div class="card">
+          <h4 class="productTitle">disable</h4>
+          <p class="productText">Disable an account (admin only).</p>
+          <div class="formRow"><a class="btn" href="disable.html">Open</a></div>
+        </div>
+
+        <div class="card">
+          <h4 class="productTitle">changeplan</h4>
+          <p class="productText">Toggle SP / NP plan type (admin only).</p>
+          <div class="formRow"><a class="btn" href="changeplan.html">Open</a></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    wireCommon();
+    if (!requireLoggedIn()) {}
+    setSessionBanner();
+
+    // If you added wireNavActive() earlier, uncomment this:
+    // wireNavActive("dashboard");
+  </script>
+</body>
+</html>
