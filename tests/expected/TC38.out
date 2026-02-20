@@ -1,0 +1,11 @@
+READ_CMD login
+READ_CMD admin
+Login successful (admin)
+READ_CMD deposit
+READ_CMD Alice
+READ_CMD 00002
+ERROR: name/account mismatch
+READ_CMD 10.00
+ERROR: command not implemented
+READ_CMD logout
+Logout successful

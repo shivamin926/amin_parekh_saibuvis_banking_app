@@ -1,0 +1,11 @@
+READ_CMD login
+READ_CMD admin
+Login successful (admin)
+READ_CMD create
+READ_CMD New User
+READ_CMD 100000.00
+ERROR: amount too large
+READ_CMD 99999.99
+Account created (available next session): 00004
+READ_CMD logout
+Logout successful

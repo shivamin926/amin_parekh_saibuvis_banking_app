@@ -1,0 +1,11 @@
+READ_CMD login
+READ_CMD admin
+Login successful (admin)
+READ_CMD transfer
+READ_CMD Alice
+READ_CMD 00002
+READ_CMD 00001
+READ_CMD 25.00
+ERROR: name/account mismatch
+READ_CMD logout
+Logout successful

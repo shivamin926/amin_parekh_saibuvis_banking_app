@@ -1,0 +1,4 @@
+acct,name,balance,status,plan
+00001,Candice,1000.00,active,SP
+00002,Jake,500.00,active,NP
+00003,Bob,250.00,disabled,SP

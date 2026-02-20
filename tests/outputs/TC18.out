@@ -1,0 +1,10 @@
+READ_CMD login
+READ_CMD admin
+Login successful (admin)
+READ_CMD withdrawal
+READ_CMD Candice
+READ_CMD 00002
+READ_CMD 10.00
+ERROR: name/account mismatch
+READ_CMD logout
+Logout successful

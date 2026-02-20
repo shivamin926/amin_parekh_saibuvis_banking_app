@@ -1,0 +1,12 @@
+READ_CMD login
+READ_CMD admin
+Login successful (admin)
+READ_CMD delete
+ERROR: invalid name
+READ_CMD 00002
+READ_CMD Alice
+ERROR: invalid account format
+READ_CMD 00002
+ERROR: name/account mismatch
+READ_CMD logout
+Logout successful

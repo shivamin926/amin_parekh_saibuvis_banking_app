@@ -1,0 +1,9 @@
+READ_CMD login
+READ_CMD admin
+Login successful (admin)
+READ_CMD disable
+READ_CMD Bob
+READ_CMD 00003
+ERROR: already disabled
+READ_CMD logout
+Logout successful

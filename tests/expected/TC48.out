@@ -1,0 +1,11 @@
+READ_CMD login
+READ_CMD admin
+Login successful (admin)
+READ_CMD create
+ERROR: invalid name
+READ_CMD 100.00
+READ_CMD New User
+ERROR: invalid amount
+Account created (available next session): 00004
+READ_CMD logout
+Logout successful

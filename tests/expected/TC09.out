@@ -1,0 +1,8 @@
+READ_CMD login
+READ_CMD standard
+READ_CMD Candice
+Login successful (standard)
+READ_CMD login
+ERROR: already logged in
+READ_CMD logout
+Logout successful
