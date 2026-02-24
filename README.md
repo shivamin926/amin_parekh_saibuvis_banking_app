@@ -57,17 +57,37 @@ Or from a bash-compatible shell:
 python bank_atm.py tests/currentaccounts.txt tests/outputs/TC01.atf < tests/inputs/TC01.in > tests/outputs/TC01.out
 ```
 
+### Run All Tests with Full Execution Policy
+
+Run all 84 test cases with ExecutionPolicy bypass:
+```powershell
+powershell -ExecutionPolicy Bypass -File tests/scripts/run_all.ps1
+```
+
 ### Verify Test Results
 
-Check test output files against expected outputs:
+Check transaction files against expected outputs:
 ```powershell
-.\tests\scripts\check_out.ps1   # Check terminal output files
-.\tests\scripts\check_atf.ps1   # Check transaction files
+powershell -ExecutionPolicy Bypass -File tests/scripts/check_atf.ps1
 ```
+
+Check terminal output files against expected outputs:
+```powershell
+powershell -ExecutionPolicy Bypass -File tests/scripts/check_out.ps1
+```
+
+### Update Expected Outputs
+
+Bless (accept and store) the current outputs as expected baselines:
+```powershell
+powershell -ExecutionPolicy Bypass -File tests/scripts/bless_expected.ps1
+```
+
+### Generate Failure Report
 
 Generate or update the failure tracking table:
 ```powershell
-.\tests\scripts\make_failure_table.ps1
+powershell -ExecutionPolicy Bypass -File tests/scripts/make_failure_table.ps1
 ```
 
 ## Test Files
