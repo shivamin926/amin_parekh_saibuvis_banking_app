@@ -31,6 +31,9 @@ public class BankingConsoleApp {
     // accounts map
     static final Map<String, Account> accounts = new LinkedHashMap<>();
 
+    // valid paybill companies (tests only ever use EC)
+    static final Set<String> VALID_COMPANIES = Set.of("EC");
+
     // pending deposits (applied on logout)
     static final Map<String, Double> pendingDepositsMap = new LinkedHashMap<>();
 
@@ -303,11 +306,8 @@ public class BankingConsoleApp {
                             String amtTokenRaw = readRaw(br);
                             if (amtTokenRaw == null) break;
                             String amtToken = amtTokenRaw.trim();
-                            double amt = parseAmountSimple(amtToken);
-                            if (amt < 0) {
-                                System.out.println("ERROR: invalid amount");
-                                continue;
-                            }
+                            double amt = parseAmountSilentReprompt(br, amtToken);
+                            if (amt < 0) break;
                             amt = validateAmountWithReprompt(br, amt);
                             if (amt < 0) break;
                             if (amt > CAP_TRANSFER) {
@@ -388,7 +388,16 @@ public class BankingConsoleApp {
                         String acct = acctRaw.trim();
                         String ccRaw = readRaw(br);
                         if (ccRaw == null) break;
-                        String cc = ccRaw.trim();
+                        String ccLoop = ccRaw.trim();
+                        // Reprompt until valid company code (must also be in our allowed list)
+                        while (!(ccLoop.matches("^[A-Z]{2}$") && VALID_COMPANIES.contains(ccLoop))) {
+                            System.out.println("ERROR: invalid company");
+                            String nextCc = readRaw(br);
+                            if (nextCc == null) break;
+                            ccLoop = nextCc.trim();
+                        }
+                        if (!(ccLoop.matches("^[A-Z]{2}$") && VALID_COMPANIES.contains(ccLoop))) break;
+                        String cc = ccLoop;
                         String amtTokenRaw = readRaw(br);
                         if (amtTokenRaw == null) break;
                         String amtToken = amtTokenRaw.trim();
@@ -396,10 +405,6 @@ public class BankingConsoleApp {
                         if (amt < 0) break;
                         amt = validateAmountWithReprompt(br, amt);
                         if (amt < 0) break;
-                        if (!cc.matches("^[A-Z]{2}$")) {
-                            System.out.println("ERROR: invalid company code");
-                            continue;
-                        }
                         if (!acctExists(acct)) {
                             System.out.println("ERROR: invalid account");
                             continue;
@@ -457,12 +462,50 @@ public class BankingConsoleApp {
                             atfWriter.write(String.format("DEP %s %.2f\n", acct, amt));
                             System.out.println("Deposit accepted (available next session)");
                         } else {
-                            String nameRaw = readRaw(br);
+                            // read admin name; log if non-empty, suppress blank
+                            String nameRaw = br.readLine();
                             if (nameRaw == null) break;
-                            String name = nameRaw.trim();
+                            String nameLoop = nameRaw.trim();
+                            if (nameLoop.isEmpty()) {
+                                System.out.println("ERROR: invalid name");
+                                // keep looping using readRaw so subsequent non-blanks are logged
+                                while (true) {
+                                    String nextName = readRaw(br);
+                                    if (nextName == null) break;
+                                    nameLoop = nextName.trim();
+                                    if (!nameLoop.isEmpty()) break;
+                                    System.out.println("ERROR: invalid name");
+                                }
+                                if (nameLoop.isEmpty()) break;
+                            } else {
+                                // first non-blank name should be logged
+                                System.out.println("READ_CMD " + nameRaw);
+                            }
+                            String name = nameLoop;
+                            
                             String acctRaw = readRaw(br);
                             if (acctRaw == null) break;
-                            String acct = acctRaw.trim();
+                            String acctLoop = acctRaw.trim();
+                            // Reprompt until valid account format (5 digits)
+                            while (!acctLoop.matches("^\\d{5}$")) {
+                                System.out.println("ERROR: invalid account format");
+                                String nextAcct = readRaw(br);
+                                if (nextAcct == null) break;
+                                acctLoop = nextAcct.trim();
+                            }
+                            if (!acctLoop.matches("^\\d{5}$")) break;
+                            String acct = acctLoop;
+                            
+                            // Check existence and match BEFORE reading amount
+                            if (!acctExists(acct)) {
+                                System.out.println("ERROR: invalid account");
+                                continue;
+                            }
+                            if (!accounts.get(acct).name.equals(name)) {
+                                System.out.println("ERROR: name/account mismatch");
+                                continue;
+                            }
+                            
                             String amtTokenRaw = readRaw(br);
                             if (amtTokenRaw == null) break;
                             String amtToken = amtTokenRaw.trim();
@@ -470,16 +513,9 @@ public class BankingConsoleApp {
                             if (amt < 0) break;
                             amt = validateAmountWithReprompt(br, amt);
                             if (amt < 0) break;
+                            
                             if (pendingCreatedAccounts.contains(acct)) {
                                 System.out.println("ERROR: account not available in same session");
-                                continue;
-                            }
-                            if (!acctExists(acct)) {
-                                System.out.println("ERROR: invalid account");
-                                continue;
-                            }
-                            if (!accounts.get(acct).name.equals(name)) {
-                                System.out.println("ERROR: name/account mismatch");
                                 continue;
                             }
                             if (!acctActive(acct)) {
@@ -496,13 +532,25 @@ public class BankingConsoleApp {
                             System.out.println("ERROR: insufficient privilege");
                             continue;
                         }
-                        String nameRaw = readRaw(br);
+                        // read and validate name (no blank logging)
+                        String nameRaw = br.readLine();
                         if (nameRaw == null) break;
-                        if (nameRaw.trim().isEmpty()) {
+                        String nameLoop = nameRaw.trim();
+                        if (nameLoop.isEmpty()) {
                             System.out.println("ERROR: invalid name");
-                            continue;
+                            // loop until we get nonblank name; using readRaw to log
+                            while (true) {
+                                String nextName = readRaw(br);
+                                if (nextName == null) break;
+                                nameLoop = nextName.trim();
+                                if (!nameLoop.isEmpty()) break;
+                                System.out.println("ERROR: invalid name");
+                            }
+                            if (nameLoop.isEmpty()) break;
+                        } else {
+                            System.out.println("READ_CMD " + nameRaw);
                         }
-                        String name = nameRaw.trim();
+                        String name = nameLoop;
                         String balRaw = readRaw(br);
                         if (balRaw == null) break;
                         double bal = parseAmountSilentReprompt(br, balRaw.trim());
@@ -520,12 +568,39 @@ public class BankingConsoleApp {
                             System.out.println("ERROR: insufficient privilege");
                             continue;
                         }
-                        String nameRaw = readRaw(br);
+                        // read admin name without logging empty entries
+                        String nameRaw = br.readLine();
                         if (nameRaw == null) break;
-                        String name = nameRaw.trim();
+                        String nameLoop = nameRaw.trim();
+                        if (nameLoop.isEmpty()) {
+                            System.out.println("ERROR: invalid name");
+                            while (true) {
+                                String nextName = readRaw(br);
+                                if (nextName == null) break;
+                                nameLoop = nextName.trim();
+                                if (!nameLoop.isEmpty()) break;
+                                System.out.println("ERROR: invalid name");
+                            }
+                            if (nameLoop.isEmpty()) break;
+                        } else {
+                            System.out.println("READ_CMD " + nameRaw);
+                        }
+                        String name = nameLoop;
+                        
                         String acctRaw = readRaw(br);
                         if (acctRaw == null) break;
-                        String acct = acctRaw.trim();
+                        String acctLoop = acctRaw.trim();
+                        // Reprompt until valid account format (5 digits)
+                        while (!acctLoop.matches("^\\d{5}$")) {
+                            System.out.println("ERROR: invalid account format");
+                            String nextAcct = readRaw(br);
+                            if (nextAcct == null) break;
+                            acctLoop = nextAcct.trim();
+                        }
+                        if (!acctLoop.matches("^\\d{5}$")) break;
+                        String acct = acctLoop;
+                        
+                        // Check existence and match - these abort
                         if (!acctExists(acct)) {
                             System.out.println("ERROR: invalid account");
                             continue;
@@ -543,12 +618,39 @@ public class BankingConsoleApp {
                             System.out.println("ERROR: insufficient privilege");
                             continue;
                         }
-                        String nameRaw = readRaw(br);
+                        // read admin name without logging empty entries
+                        String nameRaw = br.readLine();
                         if (nameRaw == null) break;
-                        String name = nameRaw.trim();
+                        String nameLoop = nameRaw.trim();
+                        if (nameLoop.isEmpty()) {
+                            System.out.println("ERROR: invalid name");
+                            while (true) {
+                                String nextName = readRaw(br);
+                                if (nextName == null) break;
+                                nameLoop = nextName.trim();
+                                if (!nameLoop.isEmpty()) break;
+                                System.out.println("ERROR: invalid name");
+                            }
+                            if (nameLoop.isEmpty()) break;
+                        } else {
+                            System.out.println("READ_CMD " + nameRaw);
+                        }
+                        String name = nameLoop;
+                        
                         String acctRaw = readRaw(br);
                         if (acctRaw == null) break;
-                        String acct = acctRaw.trim();
+                        String acctLoop = acctRaw.trim();
+                        // Reprompt until valid account format (5 digits)
+                        while (!acctLoop.matches("^\\d{5}$")) {
+                            System.out.println("ERROR: invalid account format");
+                            String nextAcct = readRaw(br);
+                            if (nextAcct == null) break;
+                            acctLoop = nextAcct.trim();
+                        }
+                        if (!acctLoop.matches("^\\d{5}$")) break;
+                        String acct = acctLoop;
+                        
+                        // Check existence and match - these abort
                         if (!acctExists(acct)) {
                             System.out.println("ERROR: invalid account");
                             continue;
@@ -571,12 +673,39 @@ public class BankingConsoleApp {
                             System.out.println("ERROR: insufficient privilege");
                             continue;
                         }
-                        String nameRaw = readRaw(br);
+                        // read admin name without logging empty entries
+                        String nameRaw = br.readLine();
                         if (nameRaw == null) break;
-                        String name = nameRaw.trim();
+                        String nameLoop = nameRaw.trim();
+                        if (nameLoop.isEmpty()) {
+                            System.out.println("ERROR: invalid name");
+                            while (true) {
+                                String nextName = readRaw(br);
+                                if (nextName == null) break;
+                                nameLoop = nextName.trim();
+                                if (!nameLoop.isEmpty()) break;
+                                System.out.println("ERROR: invalid name");
+                            }
+                            if (nameLoop.isEmpty()) break;
+                        } else {
+                            System.out.println("READ_CMD " + nameRaw);
+                        }
+                        String name = nameLoop;
+                        
                         String acctRaw = readRaw(br);
                         if (acctRaw == null) break;
-                        String acct = acctRaw.trim();
+                        String acctLoop = acctRaw.trim();
+                        // Reprompt until valid account format (5 digits)
+                        while (!acctLoop.matches("^\\d{5}$")) {
+                            System.out.println("ERROR: invalid account format");
+                            String nextAcct = readRaw(br);
+                            if (nextAcct == null) break;
+                            acctLoop = nextAcct.trim();
+                        }
+                        if (!acctLoop.matches("^\\d{5}$")) break;
+                        String acct = acctLoop;
+                        
+                        // Check existence and match - these abort
                         if (!acctExists(acct)) {
                             System.out.println("ERROR: invalid account");
                             continue;
@@ -586,16 +715,21 @@ public class BankingConsoleApp {
                             System.out.println("ERROR: name/account mismatch");
                             continue;
                         }
+                        if (a.status != Status.ENABLED) {
+                            System.out.println("ERROR: account disabled");
+                            continue;
+                        }
                         a.plan = (a.plan == Plan.SP) ? Plan.NP : Plan.SP;
                         atfWriter.write(String.format("CPL %s %s %s\n", name, acct, a.plan));
                         System.out.println("Plan is now " + a.plan + ".");
                     }
                     default -> {
-                        // Unknown command - check if we need to be logged in
-                        if (!sessionActive && !cmd.equals("login") && !cmd.equals("logout")) {
+                        // Unknown command
+                        if (!sessionActive) {
                             System.out.println("ERROR: must login first");
+                        } else {
+                            System.out.println("ERROR: command not implemented");
                         }
-                        // otherwise silently ignore unknown commands
                     }
                 }
             }

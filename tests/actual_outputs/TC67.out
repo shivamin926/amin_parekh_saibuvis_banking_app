@@ -6,5 +6,6 @@ READ_CMD Alice
 READ_CMD 00002
 ERROR: name/account mismatch
 READ_CMD Y
+ERROR: command not implemented
 READ_CMD logout
 Logout successful

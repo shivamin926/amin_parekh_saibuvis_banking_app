@@ -4,7 +4,8 @@ Login successful (admin)
 READ_CMD delete
 READ_CMD Alice
 READ_CMD 12A45
-ERROR: invalid account
+ERROR: invalid account format
 READ_CMD 00002
+ERROR: name/account mismatch
 READ_CMD logout
 Logout successful

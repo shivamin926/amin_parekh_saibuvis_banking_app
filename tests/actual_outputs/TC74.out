@@ -4,6 +4,6 @@ Login successful (admin)
 READ_CMD changeplan
 READ_CMD Bob
 READ_CMD 00003
-Plan is now NP.
+ERROR: account disabled
 READ_CMD logout
 Logout successful

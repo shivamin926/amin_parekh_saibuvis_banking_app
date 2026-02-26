@@ -7,6 +7,6 @@ READ_CMD 00001
 READ_CMD 00002
 READ_CMD ten
 ERROR: invalid amount
-READ_CMD 10.00
+Transfer successful
 READ_CMD logout
 Logout successful

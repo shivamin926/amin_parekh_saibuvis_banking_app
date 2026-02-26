@@ -5,8 +5,9 @@ Login successful (standard)
 READ_CMD paybill
 READ_CMD 00001
 READ_CMD E C
+ERROR: invalid company
 READ_CMD EC
-ERROR: invalid amount
-ERROR: invalid company code
+READ_CMD 10.00
+Paybill successful
 READ_CMD logout
 Logout successful

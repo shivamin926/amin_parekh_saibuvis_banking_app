@@ -2,9 +2,9 @@
 READ_CMD admin
 Login successful (admin)
 READ_CMD disable
-READ_CMD 
+ERROR: invalid name
 READ_CMD Alice
-ERROR: invalid account
 READ_CMD 00002
+ERROR: name/account mismatch
 READ_CMD logout
 Logout successful

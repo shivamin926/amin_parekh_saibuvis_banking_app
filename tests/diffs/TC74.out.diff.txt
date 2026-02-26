@@ -1,8 +1,0 @@
-﻿
-InputObject             SideIndicator
------------             -------------
-Plan is now NP.         =>           
-ERROR: account disabled <=           
-
-
-
