@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- Create new account page (admin only) -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -8,7 +9,7 @@
 </head>
 <body>
 
-  <!-- Navbar (consistent across pages) -->
+  <!-- Navbar -->
   <header class="navbar">
     <div class="container">
       <div class="navbarInner">
@@ -22,9 +23,9 @@
 
         <nav class="navLinks">
           <a href="dashboard.html" data-nav="dashboard">Overview</a>
-          <a href="transfer.html" data-nav="transfer">transfer</a>
-          <a href="paybill.html" data-nav="paybill">paybill</a>
-          <a href="deposit.html" data-nav="deposit">deposit</a>
+          <a href="transfer.html" data-nav="transfer">Transfer</a>
+          <a href="paybill.html" data-nav="paybill">Paybill</a>
+          <a href="deposit.html" data-nav="deposit">Deposit</a>
         </nav>
 
         <div class="navActions">
@@ -32,8 +33,8 @@
             <span class="dot"></span>
             <span id="sessionBanner">…</span>
           </div>
-          <a class="btn small" href="login.html">login</a>
-          <button class="btn primary small" id="logoutBtn">logout</button>
+          <a class="btn small" href="login.html">Login</a>
+          <button class="btn primary small" id="logoutBtn">Logout</button>
         </div>
       </div>
     </div>
@@ -45,28 +46,28 @@
       <div class="pageHeader">
         <div>
           <h1>create</h1>
-          <p>Admin-only: create a new bank account record.</p>
+          <p>Admin-Only: Create a New Bank Account Record.</p>
         </div>
         <div class="formRow" style="margin:0;">
-          <a class="btn" href="dashboard.html">Back to dashboard</a>
+          <a class="btn" href="dashboard.html">Back to Dashboard</a>
         </div>
       </div>
 
       <div class="twoCol">
         <!-- Form card -->
         <section class="card">
-          <h2 class="formTitle">create</h2>
+          <h2 class="formTitle">Create Account</h2>
           <p class="formSub">
-            Enter the user details below. You’ll see a toast message confirming success or rejection.
+            Enter the User Details Below. You’ll see a toast message confirming success or rejection.
           </p>
 
           <label for="name">Name</label>
           <input id="name" placeholder="e.g., New User" autocomplete="off" />
 
-          <label for="number">Account number</label>
+          <label for="number">Account Number</label>
           <input id="number" placeholder="e.g., 55555" inputmode="numeric" autocomplete="off" />
 
-          <label for="balance">Starting balance</label>
+          <label for="balance">Starting Balance</label>
           <input id="balance" placeholder="e.g., 0" inputmode="decimal" autocomplete="off" />
 
           <label for="plan">Plan</label>
@@ -81,7 +82,7 @@
           </div>
 
           <div class="helper">
-            Name must be a valid format. Account number must be unique.
+            Name must be a Valid Format. Account Number must be unique.
           </div>
         </section>
 

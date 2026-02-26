@@ -1,9 +1,10 @@
-/* ============================================================
+/* 
    Phase 2 Web Front End — Banking UI
    - Command words: login, logout, withdrawal, transfer, paybill,
      deposit, create, delete, disable, changeplan
    - Messages shown as toasts (no “stdout log card”)
-   ============================================================ */
+   */
+// small front-end logic for demo banking actions and UI helpers
 
 const K_SESSION = "fe_session";
 const K_ACCOUNTS = "fe_accounts";
@@ -21,6 +22,7 @@ const CAP_WITHDRAWAL = 500.00;
 const CAP_TRANSFER   = 1000.00;
 const CAP_PAYBILL    = 2000.00;
 
+// set default data in localStorage when app first runs
 function initIfNeeded(){
   if (!localStorage.getItem(K_ACCOUNTS)) localStorage.setItem(K_ACCOUNTS, JSON.stringify(DEFAULT_ACCOUNTS));
   if (!localStorage.getItem(K_TX)) localStorage.setItem(K_TX, JSON.stringify([]));
@@ -34,25 +36,39 @@ function initIfNeeded(){
   ensureToastHost();
 }
 
+// get current session object from localStorage
 function getSession(){ return JSON.parse(localStorage.getItem(K_SESSION)); }
+
+// save session object to localStorage
 function setSession(s){ localStorage.setItem(K_SESSION, JSON.stringify(s)); }
 
+// read saved accounts from localStorage
 function getAccounts(){ return JSON.parse(localStorage.getItem(K_ACCOUNTS)); }
+
+// write accounts to localStorage
 function setAccounts(a){ localStorage.setItem(K_ACCOUNTS, JSON.stringify(a)); }
 
+// read daily transaction lines
 function getDailyTx(){ return JSON.parse(localStorage.getItem(K_TX)); }
+
+// write daily transaction lines
 function setDailyTx(lines){ localStorage.setItem(K_TX, JSON.stringify(lines)); }
 
+// read pending deposits
 function getPending(){ return JSON.parse(localStorage.getItem(K_PENDING)); }
+
+// write pending deposits
 function setPending(items){ localStorage.setItem(K_PENDING, JSON.stringify(items)); }
 
+// add a line to the daily transaction list
 function recordTx(line){
   const tx = getDailyTx();
   tx.push(line);
   setDailyTx(tx);
 }
 
-/* ---------- UI helpers ---------- */
+/* UI helpers  */
+// make sure there's a DOM element to show toast messages
 function ensureToastHost(){
   let host = document.getElementById("toasts");
   if (!host){
@@ -63,6 +79,7 @@ function ensureToastHost(){
   }
 }
 
+// show a small message on screen for feedback
 function toast(type, title, msg){
   ensureToastHost();
   const host = document.getElementById("toasts");
@@ -86,6 +103,7 @@ function toast(type, title, msg){
   }, 2600);
 }
 
+// escape text before inserting into HTML to avoid mistakes
 function escapeHtml(str){
   return String(str)
     .replaceAll("&","&amp;")
@@ -95,6 +113,7 @@ function escapeHtml(str){
     .replaceAll("'","&#039;");
 }
 
+// update the small banner that shows who is signed in
 function setSessionBanner(){
   const el = document.getElementById("sessionBanner");
   if (!el) return;
@@ -103,9 +122,11 @@ function setSessionBanner(){
   else el.textContent = (s.role === "ADMIN") ? "Signed in: Admin" : `Signed in: ${s.username}`;
 }
 
+// navigate to another page
 function redirect(path){ window.location.href = path; }
 
-/* ---------- Guards ---------- */
+// Guards
+// block actions if user is not signed in
 function requireLoggedIn(){
   const s = getSession();
   if (!s.loggedIn){
@@ -115,6 +136,7 @@ function requireLoggedIn(){
   }
   return true;
 }
+// block actions if user is not an admin
 function requireAdmin(){
   const s = getSession();
   if (!requireLoggedIn()) return false;
@@ -126,21 +148,26 @@ function requireAdmin(){
   return true;
 }
 
-/* ---------- Validation ---------- */
+
+// Validation
+// check name looks like a real name
 function validNameFormat(name){
   if (!name) return false;
   const s = name.trim();
   if (!s) return false;
   return /^[A-Za-z][A-Za-z '\-]*$/.test(s);
 }
+// convert input to a number or return null
 function parseAmount(x){
   const v = Number(x);
   if (!Number.isFinite(v)) return null;
   return v;
 }
+// find an account object by account number
 function findAccount(number){
   return getAccounts().find(a => a.number === String(number).trim());
 }
+// replace an account in the stored accounts list
 function saveAccount(updated){
   const accounts = getAccounts();
   const i = accounts.findIndex(a => a.number === updated.number);
@@ -148,9 +175,8 @@ function saveAccount(updated){
   setAccounts(accounts);
 }
 
-/* ============================================================
-   COMMAND: login
-   ============================================================ */
+// Command: Login
+// handle login for admin or standard users
 function cmd_login(mode, nameMaybe){
   const s = getSession();
   if (s.loggedIn){
@@ -195,9 +221,8 @@ function cmd_login(mode, nameMaybe){
   return false;
 }
 
-/* ============================================================
-   COMMAND: logout
-   ============================================================ */
+// Command: Logout
+// handle logout and apply pending deposits when logging out
 function cmd_logout(){
   const s = getSession();
   if (!s.loggedIn){
@@ -229,6 +254,7 @@ function cmd_logout(){
   return true;
 }
 
+// create and download the daily transaction file
 function downloadDailyTxFile(){
   const lines = getDailyTx();
   const blob = new Blob([lines.join("\n") + "\n"], { type:"text/plain" });
@@ -241,9 +267,8 @@ function downloadDailyTxFile(){
   URL.revokeObjectURL(a.href);
 }
 
-/* ============================================================
-   COMMANDS: withdrawal / transfer / paybill / deposit
-   ============================================================ */
+// Commands: withdrawal / transfer / paybill / deposit
+// try to withdraw money from an account with checks
 function cmd_withdrawal({ name, number, amount }){
   const s = getSession();
   const amt = parseAmount(amount);
@@ -275,6 +300,7 @@ function cmd_withdrawal({ name, number, amount }){
   return true;
 }
 
+// move money from one account to another with checks
 function cmd_transfer({ name, from, to, amount }){
   const s = getSession();
   const amt = parseAmount(amount);
@@ -311,6 +337,7 @@ function cmd_transfer({ name, from, to, amount }){
   return true;
 }
 
+// pay a bill to a company from an account
 function cmd_paybill({ number, company, amount }){
   const s = getSession();
   const amt = parseAmount(amount);
@@ -344,6 +371,7 @@ function cmd_paybill({ number, company, amount }){
   return true;
 }
 
+// add a pending deposit (applied on logout)
 function cmd_deposit({ name, number, amount }){
   const s = getSession();
   const amt = parseAmount(amount);
@@ -366,9 +394,8 @@ function cmd_deposit({ name, number, amount }){
   return true;
 }
 
-/* ============================================================
-   Privileged: create/delete/disable/changeplan (minimal)
-   ============================================================ */
+// Privileged: create/delete/disable/changeplan (minimal)
+// create a new account (admin only)
 function cmd_create({ name, number, balance, plan }){
   const amt = parseAmount(balance);
   if (!validNameFormat(name)) return fail("create", "Invalid name format.");
@@ -388,6 +415,7 @@ function cmd_create({ name, number, balance, plan }){
   return true;
 }
 
+// delete an account if name matches (admin only)
 function cmd_delete({ name, number }){
   const acct = findAccount(number);
   if (!acct) return fail("delete", "Account does not exist.");
@@ -399,6 +427,7 @@ function cmd_delete({ name, number }){
   return true;
 }
 
+// disable an account (admin only)
 function cmd_disable({ name, number }){
   const acct = findAccount(number);
   if (!acct) return fail("disable", "Account does not exist.");
@@ -411,6 +440,7 @@ function cmd_disable({ name, number }){
   return true;
 }
 
+// toggle the account plan between SP and NP
 function cmd_changeplan({ name, number }){
   const acct = findAccount(number);
   if (!acct) return fail("changeplan", "Account does not exist.");
@@ -423,16 +453,17 @@ function cmd_changeplan({ name, number }){
   return true;
 }
 
+// helper to show a failure toast and return false
 function fail(cmd, reason){
   toast("bad", `${cmd} rejected`, reason);
   return false;
 }
 
-/* ---------- Common wiring for pages ---------- */
+// Common wiring for pages  
 function wireCommon(){
   initIfNeeded();
   setSessionBanner();
-  lockNavWhenLoggedOut();   // ✅ ADD THIS LINE
+  lockNavWhenLoggedOut();   // disable nav links if not logged in
 
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn){
@@ -451,9 +482,7 @@ function wireCommon(){
 }
 
 
-/* ============================================================
-   UI Polish (navbar state + active link)
-   ============================================================ */
+// ui polish: show/hide nav links based on login state and role, and set active page highlight
 
 function setNavUI(){
   const s = getSession();
@@ -489,7 +518,7 @@ function setActiveNav(){
   });
 }
 
-/* Update wireCommon to apply navbar UI polish */
+// Update wireCommon to apply navbar UI polish 
 const _wireCommon = wireCommon;
 wireCommon = function(){
   _wireCommon();
