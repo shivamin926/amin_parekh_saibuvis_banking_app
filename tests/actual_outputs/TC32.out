@@ -1,0 +1,11 @@
+﻿READ_CMD login
+READ_CMD standard
+READ_CMD Candice
+Login successful (standard)
+READ_CMD paybill
+READ_CMD 00001
+READ_CMD EC
+READ_CMD 99999.00
+ERROR: standard paybill limit exceeded
+READ_CMD logout
+Logout successful

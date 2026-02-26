@@ -1,0 +1,14 @@
+﻿READ_CMD login
+READ_CMD admin
+Login successful (admin)
+READ_CMD create
+READ_CMD New User
+READ_CMD 100.00
+Account created (available next session): 00004
+READ_CMD withdrawal
+READ_CMD New User
+READ_CMD 00099
+READ_CMD 10.00
+ERROR: invalid account
+READ_CMD logout
+Logout successful

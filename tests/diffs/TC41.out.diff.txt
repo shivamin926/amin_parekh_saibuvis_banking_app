@@ -1,0 +1,18 @@
+﻿
+InputObject                    SideIndicator
+-----------                    -------------
+READ_CMD 00002                 =>           
+ERROR: invalid account format  <=           
+ERROR: invalid account         =>           
+READ_CMD 00002                 <=           
+READ_CMD 10.00                 =>           
+ERROR: name/account mismatch   <=           
+READ_CMD logout                =>           
+READ_CMD 10.00                 <=           
+Logout successful              =>           
+ERROR: command not implemented <=           
+READ_CMD logout                <=           
+Logout successful              <=           
+
+
+

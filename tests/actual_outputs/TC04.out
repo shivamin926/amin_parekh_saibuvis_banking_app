@@ -1,0 +1,8 @@
+﻿READ_CMD login
+READ_CMD standard
+READ_CMD 
+ERROR: invalid name
+READ_CMD Candice
+ERROR: must login first
+READ_CMD logout
+ERROR: no active session

@@ -1,0 +1,14 @@
+﻿READ_CMD transfer
+ERROR: must login first
+READ_CMD 00001
+ERROR: must login first
+READ_CMD 00002
+ERROR: must login first
+READ_CMD 10.00
+ERROR: must login first
+READ_CMD login
+READ_CMD standard
+READ_CMD Candice
+Login successful (standard)
+READ_CMD logout
+Logout successful

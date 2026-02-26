@@ -1,0 +1,13 @@
+﻿
+InputObject                   SideIndicator
+-----------                   -------------
+ERROR: invalid account        =>           
+ERROR: invalid account format <=           
+READ_CMD logout               =>           
+ERROR: name/account mismatch  <=           
+Logout successful             =>           
+READ_CMD logout               <=           
+Logout successful             <=           
+
+
+

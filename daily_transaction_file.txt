@@ -1,0 +1,6 @@
+BEGIN_SESSION
+LOGIN standard Candice
+LOGOUT
+LOGIN standard Candice
+LOGOUT
+END_SESSION

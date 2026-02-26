@@ -1,0 +1,11 @@
+﻿
+InputObject             SideIndicator
+-----------             -------------
+LOGOUT                  =>           
+NEW 100.00 00004 100.00 <=           
+END_SESSION             =>           
+LOGOUT                  <=           
+END_SESSION             <=           
+
+
+

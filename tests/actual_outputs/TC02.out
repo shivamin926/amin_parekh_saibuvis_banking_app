@@ -1,0 +1,16 @@
+﻿READ_CMD withdrawal
+ERROR: must login first
+READ_CMD transfer
+ERROR: must login first
+READ_CMD paybill
+ERROR: must login first
+READ_CMD deposit
+ERROR: must login first
+READ_CMD logout
+ERROR: no active session
+READ_CMD login
+READ_CMD standard
+READ_CMD Candice
+Login successful (standard)
+READ_CMD logout
+Logout successful

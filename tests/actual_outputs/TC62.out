@@ -1,0 +1,8 @@
+﻿READ_CMD login
+READ_CMD standard
+READ_CMD Candice
+Login successful (standard)
+READ_CMD disable
+ERROR: insufficient privilege
+READ_CMD logout
+Logout successful

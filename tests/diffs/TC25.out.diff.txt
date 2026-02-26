@@ -1,0 +1,8 @@
+﻿
+InputObject         SideIndicator
+-----------         -------------
+READ_CMD 10.00      =>           
+Transfer successful <=           
+
+
+

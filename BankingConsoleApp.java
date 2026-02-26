@@ -2,622 +2,614 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
-/**
- * Banking Console Front End (Phase 2 style)
- *
- * Input: commands on stdin (one per line)
- * Output: responses on stdout
- * Output file: daily_transaction_file.txt written on logout
- *
- * Supported command words:
- * login, logout, withdrawal, transfer, paybill, deposit, create, delete, disable, changeplan
- *
- * Command formats (space-separated):
- *
- * login admin
- * login standard <name>
- *
- * logout
- *
- * withdrawal <acctNum> <amount>                    (STANDARD)
- * withdrawal <name> <acctNum> <amount>             (ADMIN)
- *
- * transfer <fromAcct> <toAcct> <amount>            (STANDARD)
- * transfer <name> <fromAcct> <toAcct> <amount>     (ADMIN)
- *
- * paybill <acctNum> <companyCode2Letters> <amount> (STANDARD/ADMIN)
- *
- * deposit <acctNum> <amount>                       (STANDARD)
- * deposit <name> <acctNum> <amount>                (ADMIN)
- *
- * create <name> <acctNum> <startBalance> <SP|NP>   (ADMIN)
- * delete <name> <acctNum>                          (ADMIN)
- * disable <name> <acctNum>                         (ADMIN)
- * changeplan <name> <acctNum>                      (ADMIN)
- *
- * Optional:
- * help
- * quit
- */
 public class BankingConsoleApp {
 
-    // ---------- Models ----------
-    enum Role { NONE, STANDARD, ADMIN }
     enum Status { ENABLED, DISABLED }
     enum Plan { SP, NP }
 
     static class Account {
-        String name;
-        String number;
-        double balance;
-        Status status;
-        Plan plan;
+        String name;           // holder name
+        String number;         // account number
+        double balance;        // current balance
+        Status status;         // ENABLED or DISABLED
+        Plan plan;             // SP (Standard Plan) or NP (Non-Profit)
 
-        Account(String name, String number, double balance, Status status, Plan plan) {
-            this.name = name;
-            this.number = number;
-            this.balance = balance;
-            this.status = status;
-            this.plan = plan;
+        Account(String n, String num, double bal, Status s, Plan p) {
+            name = n;
+            number = num;
+            balance = bal;
+            status = s;
+            plan = p;
         }
     }
 
-    static class Session {
-        boolean loggedIn = false;
-        Role role = Role.NONE;
-        String username = "";
-        double capWithdrawal = 0;
-        double capTransfer = 0;
-        double capPaybill = 0;
+    // limits per session
+    static final double CAP_WITHDRAWAL = 500.0;
+    static final double CAP_TRANSFER = 1000.0;
+    static final double CAP_PAYBILL = 2000.0;
 
-        void reset() {
-            loggedIn = false;
-            role = Role.NONE;
-            username = "";
-            capWithdrawal = 0;
-            capTransfer = 0;
-            capPaybill = 0;
-        }
-    }
-
-    static class PendingDeposit {
-        String acctNum;
-        double amount;
-        PendingDeposit(String acctNum, double amount) {
-            this.acctNum = acctNum;
-            this.amount = amount;
-        }
-    }
-
-    // ---------- Constants ----------
-    static final double CAP_WITHDRAWAL = 500.00;
-    static final double CAP_TRANSFER   = 1000.00;
-    static final double CAP_PAYBILL    = 2000.00;
-
-    // ---------- State ----------
+    // accounts map
     static final Map<String, Account> accounts = new LinkedHashMap<>();
-    static final List<String> dailyTx = new ArrayList<>();
-    static final List<PendingDeposit> pendingDeposits = new ArrayList<>();
-    static Session session = new Session();
 
-    static boolean requireLoginForTxn() {
-        if (!session.loggedIn) {
-            System.out.println("ERROR: must login first");
-            return false;
-        }
-        return true;
+    // pending deposits (applied on logout)
+    static final Map<String, Double> pendingDepositsMap = new LinkedHashMap<>();
+
+    // accounts created in current session cannot be used until logout
+    static final Set<String> pendingCreatedAccounts = new LinkedHashSet<>();
+
+    // session information (mirrors Python implementation)
+    static boolean sessionActive = false;          // login happened
+    static String sessionMode = null;              // "standard" or "admin"
+    static String sessionUser = null;              // name for standard sessions
+
+    // writer for ATF output file
+    static BufferedWriter atfWriter = null;
+
+    // helper to get next account number (5 digits) used by create
+    static String nextAccountNumber() {
+        int max = accounts.keySet().stream()
+                .mapToInt(s -> {
+                    try { return Integer.parseInt(s); } catch (Exception e) { return 0; }
+                })
+                .max().orElse(0);
+        return String.format("%05d", max + 1);
     }
 
-    // static boolean requireActiveSessionForLogout() {
-    //     if (!session.loggedIn) {
-    //         System.out.println("ERROR: no active session");
-    //         return false;
-    //     }
-    //     return true;
-    // }
-
-    public static void main(String[] args) throws Exception {
-    seedSampleAccounts();
-    session = new Session();
-
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
-
-        while (true) {
-
-            String cmd = readCmdLine(br);
-            if (cmd == null) break;
-            if (cmd.isEmpty()) continue;
-
-            cmd = cmd.toLowerCase();
-
-            if (cmd.equals("login")) {
-
-                String mode = readCmdLine(br);
-                if (mode == null) break;
-
-                if (mode.equalsIgnoreCase("admin")) {
-                    loginAdmin();
-                    System.out.println("Login successful (admin)");
-                }
-
-                else if (mode.equalsIgnoreCase("standard")) {
-                    String name = readCmdLine(br);
-                    if (name == null) break;
-
-                    loginStandard(name);
-                    System.out.println("Login successful (standard)");
-                }
-
-                else {
-                    System.out.println("Login rejected");
-                }
-            }
-
-            else if (cmd.equals("logout")) {
-                if (!session.loggedIn) {
-                    System.out.println("ERROR: no active session");
-                } else {
-                    logout();
-                    System.out.println("Logout successful");
-                }
-            }
-            else if (cmd.equals("withdrawal")) {
-                if (!requireLoginForTxn()) continue;
-                // later: read args + do withdrawal
-            }
-
-            else if (cmd.equals("transfer")) {
-                if (!requireLoginForTxn()) continue;
-            }
-
-            else if (cmd.equals("paybill")) {
-                if (!requireLoginForTxn()) continue;
-            }
-
-            else if (cmd.equals("deposit")) {
-                if (!requireLoginForTxn()) continue;
-            }
-        }
-    }
-}
-
-    static String readCmdLine(BufferedReader br) throws IOException {
+    // log-read convenience: prints and returns raw line (may be blank)
+    static String readRaw(BufferedReader br) throws IOException {
         String line = br.readLine();
         if (line == null) return null;
         System.out.println("READ_CMD " + line);
-        return line.trim();
+        return line;
     }
 
-    static boolean requireLogin() {
-        if (!session.loggedIn) {
-            System.out.println("ERROR: must login first");
-            return false;
+    // amount parser - parses and reprompts silently on invalid format (no READ_CMD logging)
+    static double parseAmountSilentReprompt(BufferedReader br, String firstToken) throws IOException {
+        String tok = firstToken;
+        while (true) {
+            try {
+                return Double.parseDouble(tok);
+            } catch (Exception e) {
+                System.out.println("ERROR: invalid amount");
+                tok = br.readLine();
+                if (tok == null) return -1;
+                tok = tok.trim();
+                // NO READ_CMD logging for reprompt after invalid format
+            }
         }
-        return true;
     }
 
-    static void loginAdmin() {
-        session.loggedIn = true;
-        session.role = Role.ADMIN;
+    // amount parser - just parses, returns -1 if invalid (no reprompt, no error message)
+    static double parseAmountSimple(String token) {
+        try {
+            return Double.parseDouble(token);
+        } catch (Exception e) {
+            return -1;  // indicates invalid format
+        }
     }
 
-    static void loginStandard(String name) {
-        session.loggedIn = true;
-        session.role = Role.STANDARD;
-        session.username = name;
+    // amount validator with reprompt loop for invalid range (non-positive or too large)
+    // Only called if parseAmountSimple returned a valid number
+    static double validateAmountWithReprompt(BufferedReader br, double firstAmount) throws IOException {
+        double amt = firstAmount;
+        while (true) {
+            if (amt <= 0) {
+                System.out.println("ERROR: non-positive amount");
+            } else if (amt > 99999.99) {
+                System.out.println("ERROR: amount too large");
+            } else {
+                return amt;  // valid amount
+            }
+            // reprompt - read next line and parse
+            String nxt = br.readLine();
+            if (nxt == null) return -1;
+            nxt = nxt.trim();
+            System.out.println("READ_CMD " + nxt);
+            amt = parseAmountSimple(nxt);
+            if (amt < 0) {
+                // Invalid format after reprompt - print error and return failure
+                System.out.println("ERROR: invalid amount");
+                return -1;
+            }
+        }
     }
 
-    static void logout() {
-        session.reset();
+    static boolean acctExists(String acct) { return acct != null && accounts.containsKey(acct); }
+
+    static boolean acctActive(String acct) {
+        Account a = accounts.get(acct);
+        return a != null && a.status == Status.ENABLED;
     }
 
-    static void printHelp() {
-        System.out.println("""
-                Commands:
-                  login admin
-                  login standard <name>
-                  logout
+    static double effectiveBalance(String acct) {
+        Account a = accounts.get(acct);
+        return a != null ? a.balance : 0.0;
+    }
 
-                  withdrawal <acctNum> <amount>                 (STANDARD)
-                  withdrawal <name> <acctNum> <amount>          (ADMIN)
+    static void commitPendingOnLogout() {
+        for (var e : pendingDepositsMap.entrySet()) {
+            Account a = accounts.get(e.getKey());
+            if (a != null) a.balance += e.getValue();
+        }
+        pendingDepositsMap.clear();
+        pendingCreatedAccounts.clear();
+    }
 
-                  transfer <from> <to> <amount>                 (STANDARD)
-                  transfer <name> <from> <to> <amount>          (ADMIN)
+    static boolean rejectIfNotLoggedIn() {
+        if (!sessionActive) {
+            System.out.println("ERROR: must login first");
+            return true;
+        }
+        return false;
+    }
 
-                  paybill <acctNum> <CC> <amount>               (STANDARD/ADMIN)
+    public static void main(String[] args) throws Exception {
+        seedSampleAccounts();
+        sessionActive = false;
+        sessionMode = null;
+        sessionUser = null;
 
-                  deposit <acctNum> <amount>                    (STANDARD)
-                  deposit <name> <acctNum> <amount>             (ADMIN)
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+            atfWriter = Files.newBufferedWriter(Paths.get("daily_transaction_file.txt"));
+            atfWriter.write("BEGIN_SESSION\n");
 
-                  create <name> <acctNum> <bal> <SP|NP>         (ADMIN)
-                  delete <name> <acctNum>                       (ADMIN)
-                  disable <name> <acctNum>                      (ADMIN)
-                  changeplan <name> <acctNum>                   (ADMIN)
+            while (true) {
+                String raw = br.readLine();
+                if (raw == null) break;
+                String cmd = raw.trim();
+                System.out.println("READ_CMD " + raw);
+                if (cmd.isEmpty()) continue;
 
-                  help
-                  quit
-                """);
+                switch (cmd) {
+                    case "login" -> {
+                        if (sessionActive) {
+                            System.out.println("ERROR: already logged in");
+                            continue;
+                        }
+                        String modeRaw = readRaw(br);
+                        if (modeRaw == null) break;
+                        String mode = modeRaw.trim();
+                        if (mode.equals("admin")) {
+                            sessionActive = true;
+                            sessionMode = "admin";
+                            sessionUser = null;
+                            atfWriter.write("LOGIN admin\n");
+                            System.out.println("Login successful (admin)");
+                            continue;
+                        }
+                        if (mode.equals("standard")) {
+                            String nameRaw = readRaw(br);
+                            if (nameRaw == null) break;
+                            // Check for blank name - this is an error, do NOT reprompt
+                            if (nameRaw.trim().isEmpty()) {
+                                System.out.println("ERROR: invalid name");
+                                continue;  // Back to main loop, treat next line as new command
+                            }
+                            String name = nameRaw.trim();
+                            if (accounts.values().stream().noneMatch(a -> a.name.equals(name))) {
+                                System.out.println("ERROR: unknown user");
+                                continue;
+                            }
+                            sessionActive = true;
+                            sessionMode = "standard";
+                            sessionUser = name;
+                            atfWriter.write("LOGIN standard " + name + "\n");
+                            System.out.println("Login successful (standard)");
+                            continue;
+                        }
+                        System.out.println("ERROR: invalid login mode");
+                    }
+                    case "logout" -> {
+                        if (!sessionActive) {
+                            System.out.println("ERROR: no active session");
+                        } else {
+                            atfWriter.write("LOGOUT\n");
+                            commitPendingOnLogout();
+                            sessionActive = false;
+                            sessionMode = null;
+                            sessionUser = null;
+                            System.out.println("Logout successful");
+                        }
+                    }
+                    case "withdrawal" -> {
+                        if (rejectIfNotLoggedIn()) continue;
+                        if (sessionMode.equals("standard")) {
+                            String acctRaw = readRaw(br);
+                            if (acctRaw == null) break;
+                            String acct = acctRaw.trim();
+                            String amtTokenRaw = readRaw(br);
+                            if (amtTokenRaw == null) break;
+                            String amtToken = amtTokenRaw.trim();
+                            double amt = parseAmountSilentReprompt(br, amtToken);
+                            if (amt < 0) break;
+                            amt = validateAmountWithReprompt(br, amt);
+                            if (amt < 0) break;
+                            if (pendingCreatedAccounts.contains(acct)) {
+                                System.out.println("ERROR: account not available in same session");
+                                continue;
+                            }
+                            if (!acctExists(acct)) {
+                                System.out.println("ERROR: invalid account");
+                                continue;
+                            }
+                            if (!acctActive(acct)) {
+                                System.out.println("ERROR: account disabled");
+                                continue;
+                            }
+                            if (!accounts.get(acct).name.equals(sessionUser)) {
+                                System.out.println("ERROR: account not owned by user");
+                                continue;
+                            }
+                            if (amt > CAP_WITHDRAWAL) {
+                                System.out.println("ERROR: standard withdrawal limit exceeded");
+                                continue;
+                            }
+                            if (effectiveBalance(acct) - amt < 0) {
+                                System.out.println("ERROR: insufficient funds");
+                                continue;
+                            }
+                            accounts.get(acct).balance -= amt;
+                            atfWriter.write(String.format("WDR %s %.2f\n", acct, amt));
+                            System.out.println("Withdrawal successful");
+                        } else {
+                            // admin
+                            String nameRaw = readRaw(br);
+                            if (nameRaw == null) break;
+                            String name = nameRaw.trim();
+                            String acctRaw = readRaw(br);
+                            if (acctRaw == null) break;
+                            String acct = acctRaw.trim();
+                            String amtTokenRaw = readRaw(br);
+                            if (amtTokenRaw == null) break;
+                            String amtToken = amtTokenRaw.trim();
+                            double amt = parseAmountSilentReprompt(br, amtToken);
+                            if (amt < 0) break;
+                            amt = validateAmountWithReprompt(br, amt);
+                            if (amt < 0) break;
+                            if (pendingCreatedAccounts.contains(acct)) {
+                                System.out.println("ERROR: account not available in same session");
+                                continue;
+                            }
+                            if (!acctExists(acct)) {
+                                System.out.println("ERROR: invalid account");
+                                continue;
+                            }
+                            if (!accounts.get(acct).name.equals(name)) {
+                                System.out.println("ERROR: name/account mismatch");
+                                continue;
+                            }
+                            if (!acctActive(acct)) {
+                                System.out.println("ERROR: account disabled");
+                                continue;
+                            }
+                            if (effectiveBalance(acct) - amt < 0) {
+                                System.out.println("ERROR: insufficient funds");
+                                continue;
+                            }
+                            accounts.get(acct).balance -= amt;
+                            atfWriter.write(String.format("WDR %s %.2f %s\n", acct, amt, name));
+                            System.out.println("Withdrawal successful");
+                        }
+                    }
+                    case "transfer" -> {
+                        if (rejectIfNotLoggedIn()) continue;
+                        if (sessionMode.equals("standard")) {
+                            String fromRaw = readRaw(br);
+                            if (fromRaw == null) break;
+                            String fromAcct = fromRaw.trim();
+                            String toRaw = readRaw(br);
+                            if (toRaw == null) break;
+                            String toAcct = toRaw.trim();
+                            String amtTokenRaw = readRaw(br);
+                            if (amtTokenRaw == null) break;
+                            String amtToken = amtTokenRaw.trim();
+                            double amt = parseAmountSimple(amtToken);
+                            if (amt < 0) {
+                                System.out.println("ERROR: invalid amount");
+                                continue;
+                            }
+                            amt = validateAmountWithReprompt(br, amt);
+                            if (amt < 0) break;
+                            if (amt > CAP_TRANSFER) {
+                                System.out.println("ERROR: standard transfer limit exceeded");
+                                continue;
+                            }
+                            if (pendingCreatedAccounts.contains(fromAcct) || pendingCreatedAccounts.contains(toAcct)) {
+                                System.out.println("ERROR: account not available in same session");
+                                continue;
+                            }
+                            if (!acctExists(fromAcct) || !acctExists(toAcct)) {
+                                System.out.println("ERROR: invalid account");
+                                continue;
+                            }
+                            if (!acctActive(fromAcct) || !acctActive(toAcct)) {
+                                System.out.println("ERROR: account disabled");
+                                continue;
+                            }
+                            if (!accounts.get(fromAcct).name.equals(sessionUser)) {
+                                System.out.println("ERROR: source account not owned by user");
+                                continue;
+                            }
+                            if (effectiveBalance(fromAcct) - amt < 0) {
+                                System.out.println("ERROR: insufficient funds");
+                                continue;
+                            }
+                            accounts.get(fromAcct).balance -= amt;
+                            accounts.get(toAcct).balance += amt;
+                            atfWriter.write(String.format("XFR %s %s %.2f\n", fromAcct, toAcct, amt));
+                            System.out.println("Transfer successful");
+                        } else {
+                            String nameRaw = readRaw(br);
+                            if (nameRaw == null) break;
+                            String name = nameRaw.trim();
+                            String fromRaw = readRaw(br);
+                            if (fromRaw == null) break;
+                            String fromAcct = fromRaw.trim();
+                            String toRaw = readRaw(br);
+                            if (toRaw == null) break;
+                            String toAcct = toRaw.trim();
+                            String amtTokenRaw = readRaw(br);
+                            if (amtTokenRaw == null) break;
+                            String amtToken = amtTokenRaw.trim();
+                            double amt = parseAmountSilentReprompt(br, amtToken);
+                            if (amt < 0) break;
+                            amt = validateAmountWithReprompt(br, amt);
+                            if (amt < 0) break;
+                            if (pendingCreatedAccounts.contains(fromAcct) || pendingCreatedAccounts.contains(toAcct)) {
+                                System.out.println("ERROR: account not available in same session");
+                                continue;
+                            }
+                            if (!acctExists(fromAcct) || !acctExists(toAcct)) {
+                                System.out.println("ERROR: invalid account");
+                                continue;
+                            }
+                            if (!accounts.get(fromAcct).name.equals(name)) {
+                                System.out.println("ERROR: name/account mismatch");
+                                continue;
+                            }
+                            if (!acctActive(fromAcct) || !acctActive(toAcct)) {
+                                System.out.println("ERROR: account disabled");
+                                continue;
+                            }
+                            if (effectiveBalance(fromAcct) - amt < 0) {
+                                System.out.println("ERROR: insufficient funds");
+                                continue;
+                            }
+                            accounts.get(fromAcct).balance -= amt;
+                            accounts.get(toAcct).balance += amt;
+                            atfWriter.write(String.format("XFR %s %s %.2f %s\n", fromAcct, toAcct, amt, name));
+                            System.out.println("Transfer successful");
+                        }
+                    }
+                    case "paybill" -> {
+                        if (rejectIfNotLoggedIn()) continue;
+                        String acctRaw = readRaw(br);
+                        if (acctRaw == null) break;
+                        String acct = acctRaw.trim();
+                        String ccRaw = readRaw(br);
+                        if (ccRaw == null) break;
+                        String cc = ccRaw.trim();
+                        String amtTokenRaw = readRaw(br);
+                        if (amtTokenRaw == null) break;
+                        String amtToken = amtTokenRaw.trim();
+                        double amt = parseAmountSilentReprompt(br, amtToken);
+                        if (amt < 0) break;
+                        amt = validateAmountWithReprompt(br, amt);
+                        if (amt < 0) break;
+                        if (!cc.matches("^[A-Z]{2}$")) {
+                            System.out.println("ERROR: invalid company code");
+                            continue;
+                        }
+                        if (!acctExists(acct)) {
+                            System.out.println("ERROR: invalid account");
+                            continue;
+                        }
+                        if (!acctActive(acct)) {
+                            System.out.println("ERROR: account disabled");
+                            continue;
+                        }
+                        if (sessionMode.equals("standard") && !accounts.get(acct).name.equals(sessionUser)) {
+                            System.out.println("ERROR: standard users must pay from their own account");
+                            continue;
+                        }
+                        if (sessionMode.equals("standard") && (amt > CAP_PAYBILL)) {
+                            System.out.println("ERROR: standard paybill limit exceeded");
+                            continue;
+                        }
+                        if (effectiveBalance(acct) - amt < 0) {
+                            System.out.println("ERROR: insufficient funds");
+                            continue;
+                        }
+                        accounts.get(acct).balance -= amt;
+                        atfWriter.write(String.format("BILL %s %s %.2f\n", acct, cc, amt));
+                        System.out.println("Paybill successful");
+                    }
+                    case "deposit" -> {
+                        if (rejectIfNotLoggedIn()) continue;
+                        if (sessionMode.equals("standard")) {
+                            String acctRaw = readRaw(br);
+                            if (acctRaw == null) break;
+                            String acct = acctRaw.trim();
+                            String amtTokenRaw = readRaw(br);
+                            if (amtTokenRaw == null) break;
+                            String amtToken = amtTokenRaw.trim();
+                            double amt = parseAmountSilentReprompt(br, amtToken);
+                            if (amt < 0) break;
+                            amt = validateAmountWithReprompt(br, amt);
+                            if (amt < 0) break;
+                            if (pendingCreatedAccounts.contains(acct)) {
+                                System.out.println("ERROR: account not available in same session");
+                                continue;
+                            }
+                            if (!acctExists(acct)) {
+                                System.out.println("ERROR: invalid account");
+                                continue;
+                            }
+                            if (!acctActive(acct)) {
+                                System.out.println("ERROR: account disabled");
+                                continue;
+                            }
+                            if (!accounts.get(acct).name.equals(sessionUser)) {
+                                System.out.println("ERROR: account not owned by user");
+                                continue;
+                            }
+                            pendingDepositsMap.merge(acct, amt, Double::sum);
+                            atfWriter.write(String.format("DEP %s %.2f\n", acct, amt));
+                            System.out.println("Deposit accepted (available next session)");
+                        } else {
+                            String nameRaw = readRaw(br);
+                            if (nameRaw == null) break;
+                            String name = nameRaw.trim();
+                            String acctRaw = readRaw(br);
+                            if (acctRaw == null) break;
+                            String acct = acctRaw.trim();
+                            String amtTokenRaw = readRaw(br);
+                            if (amtTokenRaw == null) break;
+                            String amtToken = amtTokenRaw.trim();
+                            double amt = parseAmountSilentReprompt(br, amtToken);
+                            if (amt < 0) break;
+                            amt = validateAmountWithReprompt(br, amt);
+                            if (amt < 0) break;
+                            if (pendingCreatedAccounts.contains(acct)) {
+                                System.out.println("ERROR: account not available in same session");
+                                continue;
+                            }
+                            if (!acctExists(acct)) {
+                                System.out.println("ERROR: invalid account");
+                                continue;
+                            }
+                            if (!accounts.get(acct).name.equals(name)) {
+                                System.out.println("ERROR: name/account mismatch");
+                                continue;
+                            }
+                            if (!acctActive(acct)) {
+                                System.out.println("ERROR: account disabled");
+                                continue;
+                            }
+                            pendingDepositsMap.merge(acct, amt, Double::sum);
+                            atfWriter.write(String.format("DEP %s %.2f %s\n", acct, amt, name));
+                            System.out.println("Deposit accepted (available next session)");
+                        }
+                    }
+                    case "create" -> {
+                        if (!sessionActive || !"admin".equals(sessionMode)) {
+                            System.out.println("ERROR: insufficient privilege");
+                            continue;
+                        }
+                        String nameRaw = readRaw(br);
+                        if (nameRaw == null) break;
+                        if (nameRaw.trim().isEmpty()) {
+                            System.out.println("ERROR: invalid name");
+                            continue;
+                        }
+                        String name = nameRaw.trim();
+                        String balRaw = readRaw(br);
+                        if (balRaw == null) break;
+                        double bal = parseAmountSilentReprompt(br, balRaw.trim());
+                        if (bal < 0) break;
+                        bal = validateAmountWithReprompt(br, bal);
+                        if (bal < 0) break;
+                        String acct = nextAccountNumber();
+                        accounts.put(acct, new Account(name, acct, bal, Status.ENABLED, Plan.SP));
+                        pendingCreatedAccounts.add(acct);
+                        atfWriter.write(String.format("NEW %s %s %.2f\n", name, acct, bal));
+                        System.out.println("Account created (available next session): " + acct);
+                    }
+                    case "delete" -> {
+                        if (!sessionActive || !"admin".equals(sessionMode)) {
+                            System.out.println("ERROR: insufficient privilege");
+                            continue;
+                        }
+                        String nameRaw = readRaw(br);
+                        if (nameRaw == null) break;
+                        String name = nameRaw.trim();
+                        String acctRaw = readRaw(br);
+                        if (acctRaw == null) break;
+                        String acct = acctRaw.trim();
+                        if (!acctExists(acct)) {
+                            System.out.println("ERROR: invalid account");
+                            continue;
+                        }
+                        if (!accounts.get(acct).name.equals(name)) {
+                            System.out.println("ERROR: name/account mismatch");
+                            continue;
+                        }
+                        accounts.remove(acct);
+                        atfWriter.write(String.format("DEL %s %s\n", name, acct));
+                        System.out.println("Account deleted");
+                    }
+                    case "disable" -> {
+                        if (!sessionActive || !"admin".equals(sessionMode)) {
+                            System.out.println("ERROR: insufficient privilege");
+                            continue;
+                        }
+                        String nameRaw = readRaw(br);
+                        if (nameRaw == null) break;
+                        String name = nameRaw.trim();
+                        String acctRaw = readRaw(br);
+                        if (acctRaw == null) break;
+                        String acct = acctRaw.trim();
+                        if (!acctExists(acct)) {
+                            System.out.println("ERROR: invalid account");
+                            continue;
+                        }
+                        Account a = accounts.get(acct);
+                        if (!a.name.equals(name)) {
+                            System.out.println("ERROR: name/account mismatch");
+                            continue;
+                        }
+                        if (!acctActive(acct)) {
+                            System.out.println("ERROR: already disabled");
+                            continue;
+                        }
+                        a.status = Status.DISABLED;
+                        atfWriter.write(String.format("DIS %s %s\n", name, acct));
+                        System.out.println("Account disabled");
+                    }
+                    case "changeplan" -> {
+                        if (!sessionActive || !"admin".equals(sessionMode)) {
+                            System.out.println("ERROR: insufficient privilege");
+                            continue;
+                        }
+                        String nameRaw = readRaw(br);
+                        if (nameRaw == null) break;
+                        String name = nameRaw.trim();
+                        String acctRaw = readRaw(br);
+                        if (acctRaw == null) break;
+                        String acct = acctRaw.trim();
+                        if (!acctExists(acct)) {
+                            System.out.println("ERROR: invalid account");
+                            continue;
+                        }
+                        Account a = accounts.get(acct);
+                        if (!a.name.equals(name)) {
+                            System.out.println("ERROR: name/account mismatch");
+                            continue;
+                        }
+                        a.plan = (a.plan == Plan.SP) ? Plan.NP : Plan.SP;
+                        atfWriter.write(String.format("CPL %s %s %s\n", name, acct, a.plan));
+                        System.out.println("Plan is now " + a.plan + ".");
+                    }
+                    default -> {
+                        // Unknown command - check if we need to be logged in
+                        if (!sessionActive && !cmd.equals("login") && !cmd.equals("logout")) {
+                            System.out.println("ERROR: must login first");
+                        }
+                        // otherwise silently ignore unknown commands
+                    }
+                }
+            }
+            atfWriter.write("END_SESSION\n");
+            atfWriter.close();
+        }
     }
 
     static void seedSampleAccounts() {
-        put(new Account("Alice", "11111", 1200.00, Status.ENABLED, Plan.SP));
-        put(new Account("Bob", "22222", 300.00, Status.ENABLED, Plan.NP));
-        put(new Account("Charlie", "33333", 0.00, Status.ENABLED, Plan.NP));
-        put(new Account("DisabledUser", "44444", 100.00, Status.DISABLED, Plan.SP));
+        // Match currentaccounts.txt: acct,name,balance,status,plan
+        put(new Account("Candice", "00001", 1000.00, Status.ENABLED, Plan.SP));
+        put(new Account("Jake",    "00002", 500.00, Status.ENABLED, Plan.NP));
+        put(new Account("Bob",     "00003", 250.00, Status.DISABLED, Plan.SP));
     }
 
     static void put(Account a) { accounts.put(a.number, a); }
-
-    // ---------- Parsing + Dispatch ----------
-    static void handleLine(String line) {
-        String[] t = line.split("\\s+");
-        String cmd = t[0].toLowerCase(Locale.ROOT);
-
-        try {
-            switch (cmd) {
-                case "login" -> cmdLogin(t);
-                case "logout" -> cmdLogout(t);
-                case "withdrawal" -> cmdWithdrawal(t);
-                case "transfer" -> cmdTransfer(t);
-                case "paybill" -> cmdPaybill(t);
-                case "deposit" -> cmdDeposit(t);
-
-                case "create" -> cmdCreate(t);
-                case "delete" -> cmdDelete(t);
-                case "disable" -> cmdDisable(t);
-                case "changeplan" -> cmdChangeplan(t);
-
-                default -> reject(cmd, "Unknown command.");
-            }
-        } catch (IllegalArgumentException ex) {
-            reject(cmd, ex.getMessage());
-        } catch (Exception ex) {
-            reject(cmd, "Unexpected error: " + ex.getMessage());
-        }
-    }
-
-    // ---------- Helpers ----------
-    static void info(String msg) { System.out.println("[INFO] " + msg); }
-    static void ok(String cmd, String msg) { System.out.println("[OK] " + cmd + " accepted — " + msg); }
-    static void reject(String cmd, String reason) { System.out.println("[REJECT] " + cmd + " rejected — " + reason); }
-
-    static void requireLoggedIn() {
-        if (!session.loggedIn) throw new IllegalArgumentException("You must login first.");
-    }
-    static void requireAdmin() {
-        requireLoggedIn();
-        if (session.role != Role.ADMIN) throw new IllegalArgumentException("Admin access required.");
-    }
-
-    static boolean validName(String name) {
-        if (name == null) return false;
-        String s = name.trim();
-        return !s.isEmpty() && s.matches("^[A-Za-z][A-Za-z '\\-]*$");
-    }
-
-    static double parseAmount(String s) {
-        try {
-            double v = Double.parseDouble(s);
-            if (!Double.isFinite(v)) return -1;
-            return v;
-        } catch (Exception e) {
-            return -1;
-        }
-    }
-
-    static Account getAcct(String num) {
-        if (num == null) return null;
-        return accounts.get(num.trim());
-    }
-
-    static void record(String line) { dailyTx.add(line); }
-
-    // ---------- Commands ----------
-    static void cmdLogin(String[] t) {
-        if (session.loggedIn) {
-            reject("login", "Already signed in — logout first.");
-            return;
-        }
-        if (t.length < 2) { reject("login", "Usage: login admin | login standard <name>"); return; }
-
-        String mode = t[1].toLowerCase(Locale.ROOT);
-
-        if (mode.equals("admin")) {
-            session.loggedIn = true;
-            session.role = Role.ADMIN;
-            session.username = "";
-            session.capWithdrawal = session.capTransfer = session.capPaybill = 0;
-            record("login|admin");
-            ok("login", "Admin session started.");
-            return;
-        }
-
-        if (mode.equals("standard")) {
-            if (t.length < 3) { reject("login", "Usage: login standard <name>"); return; }
-            String name = joinFrom(t, 2).trim();
-            if (!validName(name)) { reject("login", "Invalid name format."); return; }
-
-            boolean exists = accounts.values().stream().anyMatch(a -> a.name.equals(name));
-            if (!exists) { reject("login", "Username doesn’t exist."); return; }
-
-            session.loggedIn = true;
-            session.role = Role.STANDARD;
-            session.username = name;
-            session.capWithdrawal = session.capTransfer = session.capPaybill = 0;
-            record("login|standard|" + name);
-            ok("login", "Welcome, " + name + ".");
-            return;
-        }
-
-        reject("login", "Invalid mode. Use standard/admin.");
-    }
-
-    static void cmdLogout(String[] t) throws IOException {
-        if (!session.loggedIn) { reject("logout", "You’re already logged out."); return; }
-
-        // apply pending deposits
-        for (PendingDeposit pd : pendingDeposits) {
-            Account a = getAcct(pd.acctNum);
-            if (a != null) {
-                a.balance += pd.amount;
-                record("deposit_applied|" + a.number + "|" + money(pd.amount));
-            }
-        }
-        pendingDeposits.clear();
-
-        record("logout");
-        writeDailyTxFile("daily_transaction_file.txt");
-
-        session.reset();
-        ok("logout", "Signed out. Wrote daily_transaction_file.txt");
-    }
-
-    static void writeDailyTxFile(String filename) throws IOException {
-        Files.writeString(Paths.get(filename), String.join("\n", dailyTx) + "\n");
-    }
-
-    static void cmdWithdrawal(String[] t) {
-        requireLoggedIn();
-
-        boolean admin = (session.role == Role.ADMIN);
-        String name;
-        String acctNum;
-        String amtStr;
-
-        if (admin) {
-            if (t.length < 4) { reject("withdrawal", "Usage (admin): withdrawal <name> <acctNum> <amount>"); return; }
-            name = t[1];
-            acctNum = t[2];
-            amtStr = t[3];
-        } else {
-            if (t.length < 3) { reject("withdrawal", "Usage: withdrawal <acctNum> <amount>"); return; }
-            name = session.username;
-            acctNum = t[1];
-            amtStr = t[2];
-        }
-
-        double amt = parseAmount(amtStr);
-        if (amt <= 0) { reject("withdrawal", "Invalid amount."); return; }
-
-        Account a = getAcct(acctNum);
-        if (a == null) { reject("withdrawal", "Invalid account number."); return; }
-        if (a.status != Status.ENABLED) { reject("withdrawal", "Account is disabled."); return; }
-
-        if (!a.name.equals(name)) { reject("withdrawal", "Name/account mismatch."); return; }
-
-        if (session.role == Role.STANDARD && (session.capWithdrawal + amt) > CAP_WITHDRAWAL + 1e-9) {
-            reject("withdrawal", "Standard session cap exceeded (500).");
-            return;
-        }
-
-        if ((a.balance - amt) < -1e-9) { reject("withdrawal", "Insufficient funds."); return; }
-
-        a.balance -= amt;
-        if (session.role == Role.STANDARD) session.capWithdrawal += amt;
-
-        record("withdrawal|" + name + "|" + a.number + "|" + money(amt));
-        ok("withdrawal", "New balance: " + money(a.balance));
-    }
-
-    static void cmdTransfer(String[] t) {
-        requireLoggedIn();
-
-        boolean admin = (session.role == Role.ADMIN);
-        String name;
-        String from;
-        String to;
-        String amtStr;
-
-        if (admin) {
-            if (t.length < 5) { reject("transfer", "Usage (admin): transfer <name> <from> <to> <amount>"); return; }
-            name = t[1];
-            from = t[2];
-            to = t[3];
-            amtStr = t[4];
-        } else {
-            if (t.length < 4) { reject("transfer", "Usage: transfer <from> <to> <amount>"); return; }
-            name = session.username;
-            from = t[1];
-            to = t[2];
-            amtStr = t[3];
-        }
-
-        double amt = parseAmount(amtStr);
-        if (amt <= 0) { reject("transfer", "Invalid amount."); return; }
-
-        Account src = getAcct(from);
-        Account dst = getAcct(to);
-        if (src == null) { reject("transfer", "Invalid source account."); return; }
-        if (dst == null) { reject("transfer", "Invalid destination account."); return; }
-        if (src.status != Status.ENABLED || dst.status != Status.ENABLED) { reject("transfer", "One account is disabled."); return; }
-        if (!src.name.equals(name)) { reject("transfer", "Name/source-account mismatch."); return; }
-
-        if (session.role == Role.STANDARD && (session.capTransfer + amt) > CAP_TRANSFER + 1e-9) {
-            reject("transfer", "Standard session cap exceeded (1000).");
-            return;
-        }
-
-        if ((src.balance - amt) < -1e-9) { reject("transfer", "Insufficient funds."); return; }
-
-        src.balance -= amt;
-        dst.balance += amt;
-        if (session.role == Role.STANDARD) session.capTransfer += amt;
-
-        record("transfer|" + name + "|" + src.number + "->" + dst.number + "|" + money(amt));
-        ok("transfer", "Source balance: " + money(src.balance));
-    }
-
-    static void cmdPaybill(String[] t) {
-        requireLoggedIn();
-
-        if (t.length < 4) { reject("paybill", "Usage: paybill <acctNum> <CC> <amount>"); return; }
-        String acctNum = t[1];
-        String cc = t[2].trim().toUpperCase(Locale.ROOT);
-        String amtStr = t[3];
-
-        if (!cc.matches("^[A-Z]{2}$")) { reject("paybill", "Invalid company code format."); return; }
-
-        double amt = parseAmount(amtStr);
-        if (amt <= 0) { reject("paybill", "Invalid amount."); return; }
-
-        Account a = getAcct(acctNum);
-        if (a == null) { reject("paybill", "Invalid account number."); return; }
-        if (a.status != Status.ENABLED) { reject("paybill", "Account is disabled."); return; }
-
-        if (session.role == Role.STANDARD && !a.name.equals(session.username)) {
-            reject("paybill", "Standard users must pay from their own account.");
-            return;
-        }
-
-        if (session.role == Role.STANDARD && (session.capPaybill + amt) > CAP_PAYBILL + 1e-9) {
-            reject("paybill", "Standard session cap exceeded (2000).");
-            return;
-        }
-
-        if ((a.balance - amt) < -1e-9) { reject("paybill", "Insufficient funds."); return; }
-
-        a.balance -= amt;
-        if (session.role == Role.STANDARD) session.capPaybill += amt;
-
-        record("paybill|" + a.number + "|" + cc + "|" + money(amt));
-        ok("paybill", "New balance: " + money(a.balance));
-    }
-
-    static void cmdDeposit(String[] t) {
-        requireLoggedIn();
-
-        boolean admin = (session.role == Role.ADMIN);
-        String name;
-        String acctNum;
-        String amtStr;
-
-        if (admin) {
-            if (t.length < 4) { reject("deposit", "Usage (admin): deposit <name> <acctNum> <amount>"); return; }
-            name = t[1];
-            acctNum = t[2];
-            amtStr = t[3];
-        } else {
-            if (t.length < 3) { reject("deposit", "Usage: deposit <acctNum> <amount>"); return; }
-            name = session.username;
-            acctNum = t[1];
-            amtStr = t[2];
-        }
-
-        double amt = parseAmount(amtStr);
-        if (amt <= 0) { reject("deposit", "Invalid amount."); return; }
-
-        Account a = getAcct(acctNum);
-        if (a == null) { reject("deposit", "Invalid account number."); return; }
-        if (a.status != Status.ENABLED) { reject("deposit", "Account is disabled."); return; }
-        if (!a.name.equals(name)) { reject("deposit", "Name/account mismatch."); return; }
-
-        pendingDeposits.add(new PendingDeposit(a.number, amt));
-        record("deposit|PENDING|" + name + "|" + a.number + "|" + money(amt));
-        ok("deposit", "Accepted (pending). Funds available after logout.");
-    }
-
-    // ---------- Admin commands ----------
-    static void cmdCreate(String[] t) {
-        requireAdmin();
-        if (t.length < 5) { reject("create", "Usage: create <name> <acctNum> <bal> <SP|NP>"); return; }
-
-        String name = t[1];
-        String acctNum = t[2];
-        double bal = parseAmount(t[3]);
-        String planStr = t[4].trim().toUpperCase(Locale.ROOT);
-
-        if (!validName(name)) { reject("create", "Invalid name format."); return; }
-        if (acctNum.trim().isEmpty()) { reject("create", "Invalid account number."); return; }
-        if (bal < 0) { reject("create", "Invalid starting balance."); return; }
-
-        Plan plan;
-        try { plan = Plan.valueOf(planStr); }
-        catch (Exception e) { reject("create", "Invalid plan."); return; }
-
-        if (accounts.containsKey(acctNum)) { reject("create", "Account number already exists."); return; }
-
-        put(new Account(name.trim(), acctNum.trim(), bal, Status.ENABLED, plan));
-        record("create|" + name.trim() + "|" + acctNum.trim() + "|" + money(bal) + "|" + plan);
-        ok("create", "New account created.");
-    }
-
-    static void cmdDelete(String[] t) {
-        requireAdmin();
-        if (t.length < 3) { reject("delete", "Usage: delete <name> <acctNum>"); return; }
-
-        String name = t[1].trim();
-        String acctNum = t[2].trim();
-
-        Account a = getAcct(acctNum);
-        if (a == null) { reject("delete", "Account does not exist."); return; }
-        if (!a.name.equals(name)) { reject("delete", "Name/account mismatch."); return; }
-
-        accounts.remove(acctNum);
-        record("delete|" + a.name + "|" + a.number);
-        ok("delete", "Account removed.");
-    }
-
-    static void cmdDisable(String[] t) {
-        requireAdmin();
-        if (t.length < 3) { reject("disable", "Usage: disable <name> <acctNum>"); return; }
-
-        String name = t[1].trim();
-        String acctNum = t[2].trim();
-
-        Account a = getAcct(acctNum);
-        if (a == null) { reject("disable", "Account does not exist."); return; }
-        if (!a.name.equals(name)) { reject("disable", "Name/account mismatch."); return; }
-
-        a.status = Status.DISABLED;
-        record("disable|" + a.name + "|" + a.number);
-        ok("disable", "Account disabled.");
-    }
-
-    static void cmdChangeplan(String[] t) {
-        requireAdmin();
-        if (t.length < 3) { reject("changeplan", "Usage: changeplan <name> <acctNum>"); return; }
-
-        String name = t[1].trim();
-        String acctNum = t[2].trim();
-
-        Account a = getAcct(acctNum);
-        if (a == null) { reject("changeplan", "Account does not exist."); return; }
-        if (!a.name.equals(name)) { reject("changeplan", "Name/account mismatch."); return; }
-
-        a.plan = (a.plan == Plan.SP) ? Plan.NP : Plan.SP;
-        record("changeplan|" + a.name + "|" + a.number + "|" + a.plan);
-        ok("changeplan", "Plan is now " + a.plan + ".");
-    }
-
-    // ---------- utils ----------
-    static String money(double x) { return String.format(Locale.US, "%.2f", x); }
-
-    static String joinFrom(String[] t, int start) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = start; i < t.length; i++) {
-            if (i > start) sb.append(' ');
-            sb.append(t[i]);
-        }
-        return sb.toString();
-    }
 }

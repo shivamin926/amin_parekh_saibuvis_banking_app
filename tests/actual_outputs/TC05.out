@@ -1,0 +1,6 @@
+﻿READ_CMD login
+READ_CMD standard
+READ_CMD ThisNameDoesNotExist
+ERROR: unknown user
+READ_CMD logout
+ERROR: no active session

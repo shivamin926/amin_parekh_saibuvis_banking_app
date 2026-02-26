@@ -1,0 +1,10 @@
+﻿
+InputObject         SideIndicator
+-----------         -------------
+BILL 00001 ZZ 10.00 =>           
+END_SESSION         <=           
+LOGOUT              =>           
+END_SESSION         =>           
+
+
+

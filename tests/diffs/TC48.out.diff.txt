@@ -1,0 +1,16 @@
+﻿
+InputObject                                     SideIndicator
+-----------                                     -------------
+READ_CMD                                        =>           
+ERROR: invalid name                             <=           
+ERROR: invalid name                             =>           
+READ_CMD 100.00                                 <=           
+READ_CMD 100.00                                 =>           
+READ_CMD New User                               <=           
+READ_CMD New User                               =>           
+ERROR: invalid amount                           <=           
+READ_CMD 100.00                                 =>           
+Account created (available next session): 00004 <=           
+
+
+

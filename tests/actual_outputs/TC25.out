@@ -1,0 +1,12 @@
+﻿READ_CMD login
+READ_CMD standard
+READ_CMD Candice
+Login successful (standard)
+READ_CMD transfer
+READ_CMD 00001
+READ_CMD 00002
+READ_CMD ten
+ERROR: invalid amount
+READ_CMD 10.00
+READ_CMD logout
+Logout successful

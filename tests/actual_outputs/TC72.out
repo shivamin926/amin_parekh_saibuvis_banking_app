@@ -1,0 +1,10 @@
+﻿READ_CMD login
+READ_CMD admin
+Login successful (admin)
+READ_CMD changeplan
+READ_CMD Alice
+READ_CMD 00002
+ERROR: name/account mismatch
+READ_CMD XP
+READ_CMD logout
+Logout successful
