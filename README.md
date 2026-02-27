@@ -36,7 +36,7 @@ javac BankingConsoleApp.java
 java BankingConsoleApp
 ```
 
-When the program asks for input files, use `tests/currentaccounts.txt` and `tests/daily_transaction_file.txt`.
+Use the Test Cases from the Test Folder to put in the Inputs.
 
 2) Run the web UI:
 - Open `source_code/login.html` in your browser, or serve the folder:
