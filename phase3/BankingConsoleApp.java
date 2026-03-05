@@ -6,7 +6,7 @@ public class BankingConsoleApp {
 
     enum Status { ENABLED, DISABLED }
     enum Plan { SP, NP }
-
+    
     static class Account {
         String name;           // holder name
         String number;         // account number
