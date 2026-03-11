@@ -1,0 +1,6 @@
+00001 Alice                A 00040.00 SP
+00002 Bob                  A 00530.00 NP
+00003 Charlie              A 00000.00 NP
+00000 END_OF_FILE          A 00000.00 NP
+00004 Diana                A 00300.00 NP
+00000 END_OF_FILE          A 00000.00 NP
