@@ -1,0 +1,10 @@
+login admin
+create Diana 00004 250.00 NP
+deposit Diana 00004 50.00
+logout
+
+login standard Alice
+withdrawal 00001 20.00
+transfer 00001 00002 30.00
+paybill 00001 EC 10.00
+logout
