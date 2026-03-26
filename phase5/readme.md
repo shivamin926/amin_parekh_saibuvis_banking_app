@@ -61,7 +61,7 @@ This set of test cases covers all main decisions and loop paths in `read_old_ban
 To run all unit tests for Phase 5, use the following command in the phase5 directory:
 
 ```
-python -m unittest test_phase5.py -v
+python -m unittest unit_test.py -v
 ```
 
 ## Test Failure Analysis
