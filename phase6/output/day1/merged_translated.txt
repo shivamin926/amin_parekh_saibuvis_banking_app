@@ -1,0 +1,9 @@
+login standard Candice
+withdrawal 00001 50.00
+logout
+login standard Jake
+deposit 00002 100.00
+logout
+login admin
+create Diana 00004 200.00 SP
+logout

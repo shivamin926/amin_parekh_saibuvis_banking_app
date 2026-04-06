@@ -1,0 +1,6 @@
+login standard Jake
+transfer 00002 00001 100.00
+logout
+login admin
+changeplan Jake 00002
+logout

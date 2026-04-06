@@ -1,0 +1,6 @@
+00001 Candice              A 00950.00 SP
+00002 Jake                 A 00600.00 NP
+00003 Bob                  D 00250.00 SP
+00000 END_OF_FILE          A 00000.00 NP
+00004 Diana                A 00200.00 SP
+00000 END_OF_FILE          A 00000.00 NP

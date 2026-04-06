@@ -1,0 +1,9 @@
+login standard Candice
+withdrawal 00001 100.00
+logout
+login standard Jake
+deposit 00002 50.00
+logout
+login admin
+delete Bob 00003
+logout

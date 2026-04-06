@@ -1,0 +1,6 @@
+login standard Candice
+paybill 00001 EC 100.00
+logout
+login standard Jake
+deposit 00002 50.00
+logout

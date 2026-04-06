@@ -1,0 +1,6 @@
+login admin
+changeplan Candice 00001
+logout
+login standard Candice
+withdrawal 00001 50.00
+logout
